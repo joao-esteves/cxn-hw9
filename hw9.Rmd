@@ -75,75 +75,63 @@ flights  <- flights[flights$Source %in% big.id &
                       flights$Target %in% big.id, ]
 # Plot map of the USA
 # In some cases this needs to be added, here: dev.off();   
-map("state", col="grey50", fill=TRUE, bg="blue", lwd=0.1)
+# map("state", col="grey50", fill=TRUE, bg="blue", lwd=0.1)
 
 # Plot orange edges, eavier edges will be lighter in color.
-col.1 <- adjustcolor("orange red", alpha=0.4)
-col.2 <- adjustcolor("orange", alpha=0.4)
-edge.pal <- colorRampPalette(c(col.1, col.2), alpha = TRUE)
-edge.col <- edge.pal(100)
+# col.1 <- adjustcolor("orange red", alpha=0.4)
+# col.2 <- adjustcolor("orange", alpha=0.4)
+# edge.pal <- colorRampPalette(c(col.1, col.2), alpha = TRUE)
+# edge.col <- edge.pal(100)
 
 edgelist = c();
 for(i in 1:nrow(flights))  {   # Plot edges
   node1 <- airports[airports$ID == flights[i,]$Source,]
   node2 <- airports[airports$ID == flights[i,]$Target,]
-  arc <- gcIntermediate( 
-    c(node1[1,]$longitude, 
-      node1[1,]$latitude), 
-    c(node2[1,]$longitude, 
-      node2[1,]$latitude), 
-    n=1000, addStartEnd=TRUE )
-  edge.ind <- 
-    round(100*flights[i,]$Freq / max(flights$Freq))
-  lines(arc, col=edge.col[edge.ind], lwd=edge.ind/30)
+  # arc <- gcIntermediate( 
+  #   c(node1[1,]$longitude, 
+  #     node1[1,]$latitude), 
+  #   c(node2[1,]$longitude, 
+  #     node2[1,]$latitude), 
+  #   n=1000, addStartEnd=TRUE )
+  edge.ind <- round(100*flights[i,]$Freq / max(flights$Freq))
+  # lines(arc, col=edge.col[edge.ind], lwd=edge.ind/30)
 }  
 # ... now start simulation 
 
-# initialize edges
-for(i in 1:nrow(flights)) {   
-  i1 <- which(airports$ID == flights[i,]$Source)
-  i2 <- which(airports$ID == flights[i,]$Target)
-  edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);}
-G <- graph(edgelist);
-
-# start the simulator from initial state (1st node infected)
-Time =0; 
-V(G)$state <- 
-  c(1,0,0, 0,0,0, 0,0,0,
-    0,0,0, 0,0,0, 0,0,0,
-    0,0,0, 0,0,0, 0,0,0)
-DeltaT=0
-while (Time < 20000) {
-  L <-CTMC(G,0.001); # simulate next event, lambda=0.001
-  DeltaT <- L$second; 
-  Time = Time + DeltaT;
-  if (DeltaT < Inf)
-    Sys.sleep(DeltaT/300.0);   # Wait for a time that is proportional
-  G<- L$first; 
-  # Plot airports on map
-  points(x=airports$longitude, 
-         y=airports$latitude, pch=19, 
-         cex=airports$Visits/80, col=V(G)$state)
-}; 
-cat('Total Time:', Time, '\n')
+colors <- c('purple', 'blue', 'green', 'red', 'pink')
+plot(1, xlab="Time", ylab="Nodes Infected", xlim=c(0,5000), ylim=c(0, vcount(G)))
+for (r in 1:5) {
+  set.seed(r)
+  # initialize edges
+  for(i in 1:nrow(flights)) {   
+    i1 <- which(airports$ID == flights[i,]$Source)
+    i2 <- which(airports$ID == flights[i,]$Target)
+    edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);}
+  G <- graph(edgelist);
+  
+  # start the simulator from initial state (1st node infected)
+  Time = 0; 
+  V(G)$state <- 
+    c(1,0,0, 0,0,0, 0,0,0,
+      0,0,0, 0,0,0, 0,0,0,
+      0,0,0, 0,0,0, 0,0,0)
+  DeltaT = 0
+  points(x=0, y=1, pch=19, col=colors[r])
+  while (Time < 20000) {
+    L <-CTMC(G,0.001); # simulate next event, lambda=0.001
+    DeltaT <- L$second; 
+    Time = Time + DeltaT;
+    G <- L$first;
+    InfectedNodes <- sum(V(G)$state)
+    points(x=Time, y=InfectedNodes, pch=19, col=colors[r])
+  };
+  cat('Total Time:', Time, '\n')
+}
 ```
 
-## R Markdown
+## Exercise 2
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## Exercise 3
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## Exercise 4
 
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
