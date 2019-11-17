@@ -244,12 +244,10 @@ for (r in 1:5) {
     if (DeltaT != Inf)
     {
       Time = Time + DeltaT;
-      InfectedNodes <- sum(V(G)$state)
-      points(x=Time, y=InfectedNodes, pch=19, col=colors[r])
-      if (Time > 2000)
-    {
-      InfectedNodes <- sum(V(G)$state)
-      points(x=Time, y=InfectedNodes, pch=19, col="white")
+      if (Time <= 2000)
+      {
+        InfectedNodes <- sum(V(G)$state)
+        points(x=Time, y=InfectedNodes, pch=19, col=colors[r])
       } 
     }
   
