@@ -200,6 +200,7 @@ plot(1, xlab="Time", ylab="Nodes Infected", xlim=c(0,2100), ylim=c(0,nrow(airpor
 for (r in 1:5) {
   set.seed(r)
   # initialize edges
+  edgelist = c();
   for(i in 1:nrow(flights)) {   
     i1 <- which(airports$ID == flights[i,]$Source)
     i2 <- which(airports$ID == flights[i,]$Target)
@@ -261,6 +262,7 @@ for(i in 1:nrow(flights)) {   # Plot edges
 
 # ... now start simulation 
 # initialize edges
+edgelist = c();
 for(i in 1:nrow(flights)) {
   i1 <- which(airports$ID == flights[i,]$Source)
   i2 <- which(airports$ID == flights[i,]$Target)
@@ -300,10 +302,11 @@ cat('Total Time:', Time, '\n')
 
 # ... now start simulation 
 colors <- c('purple', 'blue', 'green', 'red', 'pink','black','cyan','yellow','brown','orange')
-plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,100), ylim=c(0,nrow(airports)))
+plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,5000), ylim=c(0,nrow(airports)))
 for (r in 1:10) {
   set.seed(r)
   # initialize edges
+  edgelist = c();
   for(i in 1:nrow(flights)) {
     i1 <- which(airports$ID == flights[i,]$Source)
     i2 <- which(airports$ID == flights[i,]$Target)
@@ -339,10 +342,11 @@ for (r in 1:10) {
 
 # ... now start simulation 
 colors <- c('purple', 'blue', 'green', 'red', 'pink','black','cyan','yellow','brown','orange')
-plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,100), ylim=c(0,nrow(airports)))
+plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,5000), ylim=c(0,nrow(airports)))
 for (r in 1:10) {
   set.seed(r)
   # initialize edges
+  edgelist = c();
   for(i in 1:nrow(flights)) {
     i1 <- which(airports$ID == flights[i,]$Source)
     i2 <- which(airports$ID == flights[i,]$Target)
