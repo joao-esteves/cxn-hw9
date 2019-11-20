@@ -5,7 +5,8 @@ author:
 - Irina Gurewitsch - s2621258
 - João Esteves - s2679663
 date: "13/11/2019"
-output: html_document
+output:
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -139,7 +140,6 @@ CTMC_SIS <- function(G, lambda) # Continuous Time Markov Chain
   # Output: G (state after event), DeltaT: holding time
   qi <- rep(0.0, vcount(G));
   qii = 0;
-  recov <- rep(0.0, vcount(G));
   alive <- FALSE
   for (j in 1:vcount(G))
   {
@@ -152,21 +152,21 @@ CTMC_SIS <- function(G, lambda) # Continuous Time Markov Chain
         qi[j] <- lambda * v; # compute rate q_ij
         if (qi[j] > 0) alive <- TRUE;# Process is still alive
     }
-    else 
+    else if (V(G)$state[j] == 1)
     {
-      recov[j] = 50.0 * lambda / airports$Visits[j];
-      
-      
-      if (recov[j] > 0) alive <- TRUE;# Process is still alive
+      qi[j] = 50.0 * lambda / airports$Visits[j];
+      if (qi[j] > 0) alive <- TRUE;# Process is still alive
     }
+    
     #    else if (V(G)$state[j] == 1)
     # {
     #     qi[j] <- 50.0*lambda/airports$Visits[j]; # rate q_ij
     #     if (qi[j] > 0) alive <- TRUE;# Process is still alive
     # }
   }
-  qii = sum(qi)+sum(recov);# Rate of leaving the current state i
-  recov_sum = sum(recov);
+  qii = sum(qi);# Rate of leaving the current state i
+  
+  
   if (alive)
   {
     # Compute exponential distribution, rate qii
@@ -177,12 +177,9 @@ CTMC_SIS <- function(G, lambda) # Continuous Time Markov Chain
     for (j in 1:vcount(G))
     {
       previous_sumprob = sumprob;
-      if (V(G)$state[j] == 0 && qi[j] != 0)
+      if (qi[j] != 0)
       {sumprob = sumprob + qi[j]/qii;}
-      # else if (V(G)$state[j] == 1)
-      # {
-      #   sumprob = sumprob + recov[j]/qii;
-      # }
+      
       if (previous_sumprob < u && u <= sumprob)
         {if (V(G)$state[j] == 0)
           {V(G)$state[j]=1;}
@@ -191,37 +188,15 @@ CTMC_SIS <- function(G, lambda) # Continuous Time Markov Chain
         }
     }
   }
-  
-    if (alive)
-  {
-    # Compute exponential distribution, rate recov_sum
-    DeltaT <- rexp(1,recov_sum)
-    # Update graph, select event proportional to rate
-    sumprob = 0;
-    u <- runif(1);
-    for (j in 1:vcount(G))
-    {
-      previous_sumprob = sumprob;
-      if (V(G)$state[j] == 1)
-      {
-        sumprob = sumprob + recov[j]/recov_sum;
-      }
-      if (previous_sumprob > u && u >= sumprob)
-        # {if (V(G)$state[j] == 0)
-        #   {V(G)$state[j]=1;}
-        # else
-          {V(G)$state[j]=0;}
-        }
-    }
-  
   else
     DeltaT <- Inf; # Infinity; Absorbing state is reached
+  
   return(list(first=G, second=DeltaT))
 }
 
 # ... now start simulation 
 colors <- c('purple', 'blue', 'green', 'red', 'pink')
-plot(1, xlab="Time", ylab="Nodes Infected", xlim=c(0,5000), ylim=c(0,nrow(airports)))
+plot(1, xlab="Time", ylab="Nodes Infected", xlim=c(0,2100), ylim=c(0,nrow(airports)))
 for (r in 1:5) {
   set.seed(r)
   # initialize edges
@@ -231,13 +206,13 @@ for (r in 1:5) {
     edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);}
   G <- graph(edgelist);
   
-  # start the simulator from initial state (1st node infected)
+  # start the simulator from initial state 
   Time = 0; 
   V(G)$state <- c(1,1,1, 1,1,1, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0)
     
   DeltaT = 0
   points(x=0, y=1, pch=19, col=colors[r])
-  while (Time < 2000 & DeltaT != Inf) {
+  while (Time <= 2000 & DeltaT != Inf) {
     L <-CTMC_SIS(G,0.001); # simulate next event, lambda=0.001
     DeltaT <- L$second; 
     G <- L$first;
@@ -261,62 +236,7 @@ for (r in 1:5) {
 
 
 ```{r}
-CTMC <- function(G, lambda) # Continuous Time Markov Chain
-{
-# Input: G (in current state), contagiousness lambda
-# Output: G (state after event), DeltaT: holding time
-qi <- rep(0.0, vcount(G));
-qii = 0;
-alive <- FALSE
-for (j in 1:vcount(G))
-{
-if (V(G)$state[j] == 0)
-{
-# count incoming edges from infected neighbors;
-v=0;
-for (nb in neighbors(G,V(G)[j],mode=c("in")) )
-if (V(G)$state[nb] ==1 ) v <- v+1;
-qi[j] <- lambda * v; # compute rate q_ij
-if (qi[j] > 0) alive <- TRUE;# Process is still alive
-}
-if (V(G)$state[j] == 2)
-  {
-    qi[j]=0;
-    alive<-FALSE;
-  }
-}
-qii = sum(qi)# Rate of leaving the current state i
-if (alive)
-{
-# Compute exponential distribution, rate qii
-DeltaT <- rexp(1,qii)
-# Update graph, select event proportional to rate
-sumprob = 0;
-u <- runif(1);
-for (j in 1:vcount(G))
-{
-previous_sumprob = sumprob;
-if (V(G)$state[j] == 0 && qi[j] != 0)
-{sumprob = sumprob + qi[j]/qii;}
-if (previous_sumprob < u && u <= sumprob)
-V(G)$state[j]=1;}# vertex j gets infected
-}
-else
-DeltaT <- Inf; # Infinity; Absorbing state is reached
-return(list(first=G, second=DeltaT))
-}
 
-# Load the data (adapt the pathnames)
-setwd("./data") # Adapt this to your directory path
-airports <- read.csv("Dataset3-Airlines-NODES.csv", header=TRUE) 
-flights <- read.csv("Dataset3-Airlines-EDGES.csv", header=TRUE, 
-                    as.is=TRUE)
-# Select only the big airports
-tab <- table(flights$Source)
-big.id <- names(tab)[tab>10]
-airports <- airports[airports$ID %in% big.id,]
-flights  <- flights[flights$Source %in% big.id & 
-                      flights$Target %in% big.id, ]
 # Plot map of the USA
 # In some cases this needs to be added, here: dev.off();   
 map("state", col="grey50", fill=TRUE, bg="blue", lwd=0.1)
@@ -326,7 +246,7 @@ map("state", col="grey50", fill=TRUE, bg="blue", lwd=0.1)
 # edge.pal <- colorRampPalette(c(col.1, col.2), alpha = TRUE)
 # edge.col <- edge.pal(100)
 edgelist = c();
-for(i in 1:nrow(flights))  {   # Plot edges
+for(i in 1:nrow(flights)) {   # Plot edges
   node1 <- airports[airports$ID == flights[i,]$Source,]
   node2 <- airports[airports$ID == flights[i,]$Target,]
   # arc <- gcIntermediate( 
@@ -342,30 +262,34 @@ for(i in 1:nrow(flights))  {   # Plot edges
 # ... now start simulation 
 # initialize edges
 for(i in 1:nrow(flights)) {
-i1 <- which(airports$ID == flights[i,]$Source)
-i2 <- which(airports$ID == flights[i,]$Target)
-edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);}
+  i1 <- which(airports$ID == flights[i,]$Source)
+  i2 <- which(airports$ID == flights[i,]$Target)
+  edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);
+}
 G <- graph(edgelist);
-# start the simulator from initial state (1st node infected)
-Time =0;
+# start the simulator from initial state 
+Time = 0;
 V(G)$state <-
-c(1,2,2, 2,2,2, 0,0,0,
-0,0,0, 0,0,0, 0,0,0,
-0,0,0, 0,0,0, 0,0,0)
-DeltaT=0
-while (Time < 20000) {
-L <-CTMC(G,0.001); # simulate next event, lambda=0.001
-DeltaT[i] <- L$second;
-Time = Time + DeltaT[i];
-#Sys.sleep(Time/300.0);# Wait for a time that is proportional
-G<- L$first;
-# Plot airports on map
-points(x=airports$longitude,
-y=airports$latitude, pch=19,
-cex=airports$Visits/80, col=V(G)$state)
-};
+  c(1,2,2, 2,2,2, 0,0,0,
+  0,0,0, 0,0,0, 0,0,0,
+  0,0,0, 0,0,0, 0,0,0)
+DeltaT = 0
+while (Time <= 20000 & DeltaT != Inf) {
+  L <-CTMC(G,0.001); # simulate next event, lambda=0.001
+  DeltaT <- L$second;
+  if (DeltaT != Inf) {
+    Time = Time + DeltaT;
+    if (Time <= 20000) {
+      #Sys.sleep(Time/300.0); # Wait for a time that is proportional
+      G<- L$first;
+      # Plot airports on map
+      points(x=airports$longitude,
+        y=airports$latitude, pch=19,
+        cex=airports$Visits/80, col=V(G)$state)
+    }
+  }
+}
 cat('Total Time:', Time, '\n')
-
 ```
 
 
@@ -373,70 +297,27 @@ cat('Total Time:', Time, '\n')
 
 
 ```{r}
-CTMC <- function(G, lambda) # Continuous Time Markov Chain
-{
-# Input: G (in current state), contagiousness lambda
-# Output: G (state after event), DeltaT: holding time
-qi <- rep(0.0, vcount(G));
-qii = 0;
-alive <- FALSE
-for (j in 1:vcount(G))
-{
-if (V(G)$state[j] == 0)
-{
-# count incoming edges from infected neighbors;
-v=0;
-for (nb in neighbors(G,V(G)[j],mode=c("in")) )
-if (V(G)$state[nb] ==1 ) v <- v+1;
-qi[j] <- lambda * v; # compute rate q_ij
-if (qi[j] > 0) alive <- TRUE;# Process is still alive
-}
-if (V(G)$state[j] == 2)
-  {
-    qi[j]=0;
-    alive<-FALSE;
-  }
-}
-qii = sum(qi)# Rate of leaving the current state i
-if (alive)
-{
-# Compute exponential distribution, rate qii
-DeltaT <- rexp(1,qii)
-# Update graph, select event proportional to rate
-sumprob = 0;
-u <- runif(1);
-for (j in 1:vcount(G))
-{
-previous_sumprob = sumprob;
-if (V(G)$state[j] == 0 && qi[j] != 0)
-{sumprob = sumprob + qi[j]/qii;}
-if (previous_sumprob < u && u <= sumprob)
-V(G)$state[j]=1;}# vertex j gets infected
-}
-else
-DeltaT <- Inf; # Infinity; Absorbing state is reached
-return(list(first=G, second=DeltaT))
-}
 
 # ... now start simulation 
-colors <- c('purple', 'blue', 'green', 'red', 'pink','black','white','yellow','brown','orange')
-plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,5000), ylim=c(0,nrow(airports)))
+colors <- c('purple', 'blue', 'green', 'red', 'pink','black','cyan','yellow','brown','orange')
+plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,100), ylim=c(0,nrow(airports)))
 for (r in 1:10) {
-set.seed(r)
-# initialize edges
-for(i in 1:nrow(flights)) {
-i1 <- which(airports$ID == flights[i,]$Source)
-i2 <- which(airports$ID == flights[i,]$Target)
-edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);}
-G <- graph(edgelist);
-# start the simulator from initial state (1st node infected)
-Time =0;
-V(G)$state <- c(1,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0)
-V(G)$state[sample(2:27, 4, replace=F)]=2
-DeltaT = 0
+  set.seed(r)
+  # initialize edges
+  for(i in 1:nrow(flights)) {
+    i1 <- which(airports$ID == flights[i,]$Source)
+    i2 <- which(airports$ID == flights[i,]$Target)
+    edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2)
+  }
+  G <- graph(edgelist);
+  # start the simulator from initial state 
+  Time = 0;
+  V(G)$state <- c(1,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0)
+  V(G)$state[sample(2:27, 4, replace=F)]=2
+  DeltaT = 0
   points(x=0, y=1, pch=19, col=colors[r])
-  while (Time < 5000 & DeltaT != Inf) {
-    L <-CTMC_SIS(G,0.001); # simulate next event, lambda=0.001
+  while (Time <= 5000 & DeltaT != Inf) {
+    L <-CTMC(G,0.001); # simulate next event, lambda=0.001
     DeltaT <- L$second; 
     G <- L$first;
     if (DeltaT != Inf)
@@ -444,96 +325,58 @@ DeltaT = 0
       Time = Time + DeltaT;
       if (Time <= 5000)
       {
-        InfectedNodes <- sum(V(G)$state)
+        InfectedNodes <- sum(V(G)$state == 1)
         points(x=Time, y=InfectedNodes, pch=19, col=colors[r])
       } 
     }
-  
+    
   };
   cat('Total Time:', Time, '\n')
 }
 ```
 
 ```{r}
-CTMC <- function(G, lambda) # Continuous Time Markov Chain
-{
-# Input: G (in current state), contagiousness lambda
-# Output: G (state after event), DeltaT: holding time
-qi <- rep(0.0, vcount(G));
-qii = 0;
-alive <- FALSE
-for (j in 1:vcount(G))
-{
-if (V(G)$state[j] == 0)
-{
-# count incoming edges from infected neighbors;
-v=0;
-for (nb in neighbors(G,V(G)[j],mode=c("in")) )
-if (V(G)$state[nb] ==1 ) v <- v+1;
-qi[j] <- lambda * v; # compute rate q_ij
-if (qi[j] > 0) alive <- TRUE;# Process is still alive
-}
-if (V(G)$state[j] == 2)
-  {
-    qi[j]=0;
-    alive<-FALSE;
-  }
-}
-qii = sum(qi)# Rate of leaving the current state i
-if (alive)
-{
-# Compute exponential distribution, rate qii
-DeltaT <- rexp(1,qii)
-# Update graph, select event proportional to rate
-sumprob = 0;
-u <- runif(1);
-for (j in 1:vcount(G))
-{
-previous_sumprob = sumprob;
-if (V(G)$state[j] == 0 && qi[j] != 0)
-{sumprob = sumprob + qi[j]/qii;}
-if (previous_sumprob < u && u <= sumprob)
-V(G)$state[j]=1;}# vertex j gets infected
-}
-else
-DeltaT <- Inf; # Infinity; Absorbing state is reached
-return(list(first=G, second=DeltaT))
-}
 
 # ... now start simulation 
-colors <- c('purple', 'blue', 'green', 'red', 'pink','black','white','yellow','brown','orange')
-plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,5000), ylim=c(0,nrow(airports)))
+colors <- c('purple', 'blue', 'green', 'red', 'pink','black','cyan','yellow','brown','orange')
+plot(1, xlab="Time", ylab="Infected Nodes", xlim=c(0,100), ylim=c(0,nrow(airports)))
 for (r in 1:10) {
-set.seed(r)
-# initialize edges
-for(i in 1:nrow(flights)) {
-i1 <- which(airports$ID == flights[i,]$Source)
-i2 <- which(airports$ID == flights[i,]$Target)
-edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2);}
-G <- graph(edgelist);
-# start the simulator from initial state (1st node infected)
-Time =0;
-V(G)$state <- c(1,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0)
+  set.seed(r)
+  # initialize edges
+  for(i in 1:nrow(flights)) {
+    i1 <- which(airports$ID == flights[i,]$Source)
+    i2 <- which(airports$ID == flights[i,]$Target)
+    edgelist <- c(edgelist, i1); edgelist <- c(edgelist, i2)
+  }
+  G <- graph(edgelist);
+  # start the simulator from initial state 
+  Time = 0;
+  V(G)$state <- c(1,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0)
+  
+  # find 4 highest degree nodes
+  degree_list <- c(degree(G))
+  degree_list = sort(degree_list,decreasing = TRUE, index.return=TRUE );
+  for (i in 1:4)
+  {
+    V(G)$state[degree_list$ix[i]] <- 2
+  }
 
-V(G)$state[which(degree(G)==max(degree(G)))]<-2
-V(G)$state[(degree(G)==max( degree(G)[degree(G)!=max(degree(G))] ))]<-2
-
-DeltaT = 0
+  DeltaT = 0
   points(x=0, y=1, pch=19, col=colors[r])
-  while (Time < 5000 & DeltaT != Inf) {
-    L <-CTMC_SIS(G,0.001); # simulate next event, lambda=0.001
-    DeltaT <- L$second; 
+  while (Time <= 5000 & DeltaT != Inf) {
+    L <-CTMC(G,0.001); # simulate next event, lambda=0.001
+    DeltaT <- L$second;
     G <- L$first;
     if (DeltaT != Inf)
     {
       Time = Time + DeltaT;
       if (Time <= 5000)
       {
-        InfectedNodes <- sum(V(G)$state)
+        InfectedNodes <- sum(V(G)$state == 1)
         points(x=Time, y=InfectedNodes, pch=19, col=colors[r])
-      } 
+      }
     }
-  
+
   };
   cat('Total Time:', Time, '\n')
 }
